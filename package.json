@@ -1,0 +1,16 @@
+{
+    "name": "mapped-object-factory",
+    "projectName": "mapped-object-factory",
+    "version": "0.0.1",
+    "private": true,
+    "author": {
+        "name": "demorc"
+    },
+    "scripts": {
+        "test": "clear; jshint *.js --verbose; jshint spec/*.js --verbose; jasmine"
+    },
+    "devDependencies": {},
+    "engines": {
+        "node": ">=0.10.0"
+    }
+}
