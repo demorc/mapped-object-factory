@@ -6,12 +6,47 @@ function MappedObject(factory) {
   this.__origin = null;
 }
 
-MappedObject.prototype.encode = function() {
-  return this.__factory.encode(this);
+MappedObject.__reservedKeyMap = {'__factory': 1, '__origin': 1};
+
+// public methods
+
+// ([options]): {ignoreOrigin: (true: copy props only from product)}
+MappedObject.prototype.encode = function(options) {
+  return this.__factory.encode(this, options);
 };
 
 MappedObject.prototype.decode = function(origin) {
   return this.__factory.decode(this, origin);
+};
+
+MappedObject.prototype.clear = function() {
+  for (var prop in this) {
+    if (this.hasOwnProperty(prop)) {
+      if (!MappedObject.__reservedKeyMap[prop]) {
+        delete this[prop];
+      }
+    }
+  }
+  return this;
+};
+
+MappedObject.prototype.merge = function(changes) {
+  for (var prop in changes) {
+    if (this.hasOwnProperty(prop) && changes.hasOwnProperty(prop)) {
+      this[prop] = changes[prop];
+    }
+  }
+  return this;
+};
+
+MappedObject.prototype.toPlainObject = function() {
+  var plainObject = {};
+  for (var prop in this) {
+    if (this.hasOwnProperty(prop) && !MappedObject.__reservedKeyMap[prop]) {
+      plainObject[prop] = this[prop];
+    }
+  }
+  return plainObject;
 };
 
 // Factory
@@ -119,16 +154,7 @@ MappedObjectFactory.prototype.decode = function(product, origin) {
   var ignoreMap = this.blueprint.ignoreMap;
   var prop, key, val, converter, typedProp;
 
-  // clear old props
-  for (prop in product) {
-    if (product.hasOwnProperty(prop)) {
-      if (prop !== '__factory' && prop !== '__origin') {
-        if (typeof product[prop] !== 'function') {
-          delete product[prop];
-        }
-      }
-    }
-  }
+  product.clear();
 
   // copy props
   for (prop in origin) {
@@ -159,7 +185,9 @@ MappedObjectFactory.prototype.decode = function(product, origin) {
   return product;
 };
 
-MappedObjectFactory.prototype.encode = function(product) {
+MappedObjectFactory.prototype.encode = function(product, options) {
+  options = options || {};
+
   var p2oMap = this.blueprint.map.p2o;
   var o2pMap = this.blueprint.map.o2p;
   var ignoreMap = this.blueprint.ignoreMap;
@@ -170,17 +198,28 @@ MappedObjectFactory.prototype.encode = function(product) {
   for (prop in origin) {
     if (origin.hasOwnProperty(prop)) {
       if (o2pMap.hasOwnProperty(prop)) {
-
+        // from map property
         productKey = o2pMap[prop].key;
         typedProp = p2oMap[productKey];
         key = typedProp.key;
         converter = typedProp.converter;
 
-        // copy from product only if in map
-        expOrigin[prop] = converter ? converter(product[productKey]) : product[productKey];
+        // ignore empty values
+        if (product[productKey] !== undefined) {
+          expOrigin[prop] = converter ? converter(product[productKey]) : product[productKey];
+        }
+
       } else {
-        // copy from origin without changes
-        expOrigin[prop] = origin[prop];
+        // not from map
+        if (product[prop] !== undefined) {
+          expOrigin[prop] = product[prop];
+
+        } else {
+          if (!options.ignoreOrigin && origin[prop] !== undefined) {
+            // copy from origin (without changes)
+            expOrigin[prop] = origin[prop];
+          }
+        }
       }
     }
   }

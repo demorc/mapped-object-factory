@@ -16,7 +16,7 @@ describe("MappedObjectFactory", function() {
         src3: 'dest3',
         src4: 'dest4'
       },
-      ignore: ['dest1', 'dest2'],
+      ignore: ['src1', 'src2'],
       didDecode: function(product, origin) {
         product.dest5 = origin.src1 + origin.src2;
       },
@@ -31,8 +31,8 @@ describe("MappedObjectFactory", function() {
     var p = factory.produce(sampleOrigin);
 
     // ignore
-    expect(p.dest1).toBe(undefined);
-    expect(p.dest2).toBe(undefined);
+    expect(p.src1).toBe(undefined);
+    expect(p.src2).toBe(undefined);
     // copy
     expect(p.dest3).toBe(33);
     expect(p.dest4).toBe(44);
@@ -71,5 +71,44 @@ describe("MappedObjectFactory", function() {
     expect(p.dest1).toBe(100);
     expect(p.encode().src1).toBe('100');
   });
+
+
+  it("should clear the product", function() {
+    var p = factory.produce(sampleOrigin).clear();
+
+    expect(p.dest1).toBe(undefined);
+    expect(p.dest2).toBe(undefined);
+    expect(p.dest3).toBe(undefined);
+    expect(p.dest4).toBe(undefined);
+  });
+
+
+  it("should merge product with plain data object", function() {
+    var p = factory.produce(sampleOrigin).merge({
+      dest1: 'one',
+      dest2: 'two',
+      dest3: 'three',
+      dest4: 'four'
+    });
+
+    expect(p.dest1).toBe(undefined);
+    expect(p.dest2).toBe(undefined);
+    expect(p.dest3).toBe('three');
+    expect(p.dest4).toBe('four');
+  });
+
+
+  it("should translate product to plain js object", function() {
+    var p = factory.produce(sampleOrigin);
+    var plainProductString = JSON.stringify(p.toPlainObject());
+    var shouldString = JSON.stringify({
+      dest3: 33,
+      dest4: 44,
+      dest5: 33
+    });
+
+    expect(plainProductString).toBe(shouldString);
+  });
+
 
 });
