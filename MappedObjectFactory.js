@@ -57,7 +57,6 @@ function MappedObjectFactory(rawBlueprint) {
 
   var blueprint = this.blueprint = {
     map: null,
-    ignore: null,
     // @todo: console.log all prop map if debug === true
     // debug: rawBlueprint.debug,
     didDecode: rawBlueprint.didDecode,
@@ -236,6 +235,65 @@ MappedObjectFactory.prototype.produce = function(origin) {
   var product = new MappedObject(this);
   this.decode(product, origin);
   return product;
+};
+
+MappedObjectFactory.prototype.toString = function() {
+  var blueprint = this.blueprint;
+  var indent = '  ';
+  var res = '';
+  var collectFromMap = function(map) {
+    for (var prop in map) {
+      if (map.hasOwnProperty(prop)) {
+        var val = map[prop];
+        res += indent + prop + ' -> ' + (val.type ? val.key + ':' + val.type : val.key) + '\n';
+      }
+    }
+  };
+  var collectFromIgnored = function(map) {
+    for (var prop in map) {
+      if (map.hasOwnProperty(prop)) {
+        res += indent + prop;
+      }
+    }
+  };
+  var collectFromDidFunction = function(fn) {
+    var decodeRe = /^([\w\s]+[\.\[]+)([\w]+)[\]]*[\s=]+(.*?)([\;]*)$/gm;
+    var functionStr = fn.toString();
+    var parts;
+
+    while ((parts = decodeRe.exec(functionStr)) !== null) {
+      res += indent + parts[2] + ' -> ' + parts[3] + '\n';
+    }
+  };
+
+  res += '#decode:\n----------\n';
+  if (blueprint.map.o2p) {
+    res += 'map:\n';
+    collectFromMap(blueprint.map.o2p);
+  }
+
+  if (blueprint.ignoreMap) {
+    res += 'ignored:\n';
+    collectFromIgnored(blueprint.ignoreMap);
+  }
+
+  if (blueprint.didDecode) {
+    res += '\nafter-decode:\n';
+    collectFromDidFunction(blueprint.didDecode);
+  }
+
+  res += '\n#encode:\n----------\n';
+  if (blueprint.map.p2o) {
+    res += 'map:\n';
+    collectFromMap(blueprint.map.p2o);
+  }
+
+  if (blueprint.didDecode) {
+    res += 'after-encode:\n'
+    collectFromDidFunction(blueprint.didEncode);
+  }
+
+  return res;
 };
 
 if (module && module.exports) {
